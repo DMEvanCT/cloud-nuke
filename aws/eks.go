@@ -1,8 +1,11 @@
 package aws
 
 import (
+	"context"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	eksv2 "github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/gruntwork-io/cloud-nuke/logging"
@@ -46,6 +49,34 @@ func getAllEksClusters(awsSession *session.Session, excludeAfter time.Time) ([]*
 	}
 	return filteredClusters, nil
 }
+
+
+// @TODO fix this. It's a bit tricky in V2
+func getFargateProfiles(clusterName *string) (eksv2.ListFargateProfilesOutput, error) {
+	config, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		  errors.WithStackTrace(err)
+	}
+	svc := eksv2.NewFromConfig(config)
+	fprofiles, err := svc.ListFargateProfiles(context.Background(), &eksv2.ListFargateProfilesInput{ClusterName: clusterName})
+
+
+
+	return *fprofiles, nil
+}
+// @TODO fix this to delete EKS with profiles retrieved from above.
+func NukeFargateProfiles(profiles *eksv2.ListFargateProfilesOutput, clusterName *string)  {
+	for _, profile := range profiles.FargateProfileNames {
+
+		prof := eksv2.DeleteFargateProfileInput{
+			ClusterName:        clusterName,
+			FargateProfileName: &profile,
+		}
+		eksv2.Del
+	}
+}
+
+
 
 // filterOutRecentEksClusters will take in the list of clusters and filter out any clusters that were created after
 // `excludeAfter`.
